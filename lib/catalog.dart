@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_flutter_bloc/bloc/cart_bloc.dart';
+import 'package:flutter_flutter_bloc/main.dart';
 
 import 'cart.dart';
 import 'item.dart';
@@ -13,46 +14,42 @@ class Catalog extends StatefulWidget {
 }
 
 class _CatalogState extends State<Catalog> {
-  List<Item> _itemList = itemList;
-
   @override
   Widget build(BuildContext context) {
-    final _cartBloc = BlocProvider.of<CartBloc>(context);
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Catalog'),
-        actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.push(
+        appBar: AppBar(
+          title: Text('Catalog'),
+          actions: [
+            IconButton(
+              onPressed: () {
+                Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => Cart()),
-              );
-            },
-            icon: Icon(Icons.archive),
-          )
-        ],
-      ),
-      body: BlocProvider(
-        create: (context) => _cartBloc,
-        child: BlocBuilder(
-          bloc: _cartBloc,
-          builder: (BuildContext context, List state) {
-            return ListView(
-              children: _itemList
-                  .map((e) => _buildItem(e, state, _cartBloc))
-                  .toList(),
-            );
-          },
+                );
+              },
+              icon: Icon(Icons.archive),
+            )
+          ],
         ),
-      ),
-    );
+        body: StreamBuilder(
+          stream: cartBloc.cartList,
+          builder: (context, snapshot) {
+            if (snapshot.hasData) {
+              return ListView(
+                children: cartBloc.itemList
+                    .map((e) => _buildItem(e, snapshot.data!))
+                    .toList(),
+              );
+            } else {
+              return Container();
+            }
+          },
+        ));
   }
 
   Widget _buildItem(
     Item item,
-    List state,
-    CartBloc cartBloc,
+    List<Item> state,
   ) {
     final isChecked = state.contains(item);
 
@@ -66,13 +63,11 @@ class _CatalogState extends State<Catalog> {
         subtitle: Text('${item.price}'),
         trailing: IconButton(
           onPressed: () {
-            setState(() {
-              if(isChecked){
-                cartBloc.add(CartEvent(CartEventType.remove, item));
-              }else{
-                cartBloc.add(CartEvent(CartEventType.add, item));
-              }
-            });
+            if (isChecked) {
+              cartBloc.add(CartEvent(CartEventType.remove, item));
+            } else {
+              cartBloc.add(CartEvent(CartEventType.add, item));
+            }
           },
           icon: isChecked
               ? Icon(
